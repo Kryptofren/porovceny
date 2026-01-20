@@ -36,27 +36,30 @@ const parseMarkdownTable = (text: string): PriceOffer[] => {
 };
 
 export const searchPrices = async (query: string): Promise<SearchResult> => {
-  // Získame kľúč a ošetríme ho o náhodné medzery
   const rawApiKey = process.env.API_KEY || "";
   const apiKey = rawApiKey.trim();
   
+  // Diagnostická informácia o kľúči (pre zobrazenie v UI v prípade chyby)
+  const keySnippet = apiKey ? `${apiKey.substring(0, 6)}...${apiKey.substring(apiKey.length - 4)}` : "CHÝBA";
+
   if (!apiKey) {
-    throw new Error("V systéme úplne chýba premenná API_KEY. Pridajte ju vo Verceli.");
+    throw new Error("V systéme chýba API_KEY. Skontrolujte Environment Variables vo Verceli.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const modelName = "gemini-3-flash-preview";
+  // Zmena na gemini-2.5-flash pre širšiu kompatibilitu
+  const modelName = "gemini-2.5-flash";
   
   const systemInstruction = `
-    Si slovenský nákupný asistent. 
+    Si nákupný špecialista pre Slovensko. 
     Vždy odpovedaj Markdown tabuľkou: | Obchod | Produkt | Cena | Platnosť |
-    Nájdi najlepšie ceny pre dany tovar v SR (Tesco, Lidl, Kaufland, Billa).
+    Obchody: Tesco, Lidl, Kaufland, Billa.
   `;
 
   try {
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: `Aktuálne akcie na ${query} na Slovensku.`,
+      contents: `Aktuálne ceny pre ${query} na Slovensku.`,
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }]
@@ -77,29 +80,27 @@ export const searchPrices = async (query: string): Promise<SearchResult> => {
   } catch (error: any) {
     console.error("Gemini Error:", error);
     
-    // Špecifická detekcia neplatného kľúča
-    if (error.message?.includes("API key not valid") || error.message?.includes("API_KEY_INVALID")) {
-      throw new Error("NEPLATNÝ API KĽÚČ. Váš kľúč vo Verceli je nesprávny. Skopírujte ho znova z Google AI Studio bez medzier.");
+    const errorMsg = error.message || "";
+    
+    if (errorMsg.includes("API key not valid") || errorMsg.includes("400")) {
+      throw new Error(`[NEPLATNÝ KĽÚČ] Google odmietol kľúč "${keySnippet}". Skontrolujte ho v Google AI Studio a urobte REDEPLOY vo Verceli.`);
     }
 
-    // Fallback bez vyhľadávania (ak je problém len v Google Search tool)
+    // Fallback pokus bez Search toolu
     try {
       const fallbackResponse = await ai.models.generateContent({
         model: modelName,
-        contents: `Aké sú bežné akciové ceny pre ${query} na Slovensku?`,
+        contents: `Aké sú bežné akciové ceny pre ${query} na Slovensku? Odpovedaj tabuľkou.`,
         config: { systemInstruction },
       });
       const text = fallbackResponse.text || "";
       return { 
-        text: text + "\n\n(Režim bez internetu - obmedzené dáta).", 
+        text: text + "\n\n(Poznámka: Vyhľadávanie na webe je blokované, toto sú archívne dáta).", 
         sources: [], 
         offers: parseMarkdownTable(text) 
       };
     } catch (innerError: any) {
-      if (innerError.message?.includes("API key not valid")) {
-         throw new Error("NEPLATNÝ API KĽÚČ. Skontrolujte nastavenia Vercel.");
-      }
-      throw new Error(`[Chyba API] ${innerError.message || 'Nepodarilo sa spojiť s AI'}`);
+      throw new Error(`[Kritická chyba] Model ${modelName} hlási: ${innerError.message}. Overte kľúč ${keySnippet}`);
     }
   }
 };
