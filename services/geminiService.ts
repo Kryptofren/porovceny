@@ -43,6 +43,7 @@ export const searchPrices = async (query: string): Promise<SearchResult> => {
   }
 
   const ai = new GoogleGenAI({ apiKey });
+  const modelName = "gemini-3-flash-preview";
   
   const systemInstruction = `
     Si nákupný špecialista na slovenské potraviny. 
@@ -50,18 +51,18 @@ export const searchPrices = async (query: string): Promise<SearchResult> => {
     
     PRAVIDLÁ:
     1. Vždy vráť Markdown tabuľku: | Obchod | Produkt | Cena | Platnosť |
-    2. Pod tabuľku pridaj jednu vetu s odporúčaním, kde sa to najviac oplatí.
-    3. Ak nevieš nájsť presnú cenu, odhadni ju podľa posledných známych letákov.
+    2. Pod tabuľku pridaj jednu vetu s odporúčaním.
+    3. Ak nevieš nájsť presnú cenu cez Google Search, použi svoje interné vedomosti o bežných akciách na Slovensku.
   `;
 
+  // Pokus č. 1: S Google Search groundingom
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", 
+      model: modelName,
       contents: `Nájdi aktuálne akciové ceny pre: ${query} na Slovensku.`,
       config: {
         systemInstruction,
-        tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingBudget: 0 }
+        tools: [{ googleSearch: {} }]
       },
     });
 
@@ -74,21 +75,32 @@ export const searchPrices = async (query: string): Promise<SearchResult> => {
         uri: chunk.web.uri,
       }));
 
-    const offers = parseMarkdownTable(text);
-
-    return {
-      text,
-      sources,
-      offers,
-    };
+    return { text, sources, offers: parseMarkdownTable(text) };
+    
   } catch (error: any) {
-    console.error("Gemini API Error Detail:", error);
+    console.warn("Google Search zlyhal (pravdepodobne regionálne obmedzenie), skúšam fallback bez search toolu...", error);
     
-    // Špecifickejšie chybové hlášky
-    if (error.message?.includes("429")) throw new Error("Dosiahli ste limit bezplatných dopytov (Free Tier). Skúste o minútu.");
-    if (error.message?.includes("403")) throw new Error("API kľúč nemá povolenie na Google Search (možné regionálne obmedzenie EÚ).");
-    if (error.message?.includes("400")) throw new Error("Chybná požiadavka. Skúste iný názov potraviny.");
+    // Fallback: Ak zlyhá search (400), skúsime to isté bez nástrojov
+    if (error.message?.includes("400") || error.message?.includes("403")) {
+      try {
+        const fallbackResponse = await ai.models.generateContent({
+          model: modelName,
+          contents: `Nájdi aktuálne odhadované akciové ceny pre: ${query} na Slovensku podľa tvojich vedomostí o letákoch.`,
+          config: { systemInstruction },
+        });
+
+        const text = fallbackResponse.text || "";
+        return { 
+          text: text + "\n\n(Poznámka: Tieto dáta sú generované bez priameho prístupu k webu kvôli technickému obmedzeniu API.)", 
+          sources: [], 
+          offers: parseMarkdownTable(text) 
+        };
+      } catch (innerError) {
+        throw new Error("Kritická chyba AI modelu. Skontrolujte API kľúč.");
+      }
+    }
     
-    throw new Error("Chyba spojenia s AI. Skontrolujte API_KEY v nastaveniach Vercel.");
+    if (error.message?.includes("429")) throw new Error("Dosiahli ste limit bezplatných dopytov. Skúste o minútu.");
+    throw new Error("Chyba spojenia s AI. Skontrolujte nastavenia Vercel.");
   }
 };
