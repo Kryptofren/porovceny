@@ -11,10 +11,9 @@ import {
   Zap, 
   Lock, 
   Unlock, 
-  History,
   AlertTriangle,
   RefreshCw,
-  Copy
+  Terminal
 } from 'lucide-react';
 import { searchPrices } from './services/geminiService';
 import { SearchResult } from './types';
@@ -94,6 +93,7 @@ const App: React.FC = () => {
               className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none text-center text-xl font-bold focus:border-green-500 transition-all"
               autoFocus
             />
+            {authError && <p className="text-red-500 text-center text-xs font-bold uppercase mb-2">Chybné heslo!</p>}
             <button type="submit" className="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg">
               Odomknúť aplikáciu
             </button>
@@ -119,8 +119,8 @@ const App: React.FC = () => {
 
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8">
         <div className="text-center mb-10">
-          <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tight">Kde je to v akcii?</h2>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">Inteligentné vyhľadávanie v letákoch</p>
+          <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tight">Akcie v SR</h2>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">Inteligentný nákupný asistent</p>
         </div>
 
         <form onSubmit={handleSearch} className="relative mb-12">
@@ -128,16 +128,48 @@ const App: React.FC = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Zadajte potravinu (napr. maslo, mlieko, pivo...)"
+            placeholder="Zadajte potravinu..."
             className="w-full pl-14 pr-36 py-6 bg-white border-2 border-slate-100 rounded-[2rem] shadow-xl focus:border-green-500 outline-none text-xl font-medium transition-all"
           />
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 w-6 h-6" />
           <button type="submit" disabled={loading} className="absolute right-3 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-sm tracking-wider disabled:opacity-50 transition-all active:scale-95">
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sliediť'}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'VYHĽADAŤ'}
           </button>
         </form>
 
-        {!result && !loading && (
+        {error && (
+          <div className="mb-10 p-8 bg-red-50 border-4 border-red-100 rounded-[2.5rem] shadow-xl animate-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center">
+              <div className="bg-red-500 p-4 rounded-full mb-4">
+                <AlertTriangle className="text-white w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-red-600 uppercase mb-4">Problém s kľúčom</h3>
+              
+              <div className="bg-white p-6 rounded-2xl w-full mb-6 text-left border border-red-200">
+                <div className="flex items-center gap-2 mb-3 text-red-800 font-bold uppercase text-[10px]">
+                  <Terminal className="w-4 h-4" /> Diagnostické hlásenie
+                </div>
+                <code className="text-xs text-red-600 break-all font-mono leading-relaxed">{error}</code>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 w-full">
+                <div className="bg-blue-50 p-6 rounded-2xl text-left border border-blue-100">
+                  <h4 className="text-blue-800 font-black text-xs uppercase mb-2">Ako to opraviť?</h4>
+                  <ol className="text-xs text-blue-700 space-y-2 list-decimal ml-4 font-bold uppercase">
+                    <li>Vložte kľúč do Vercelu ako <span className="text-blue-900 underline">API_KEY</span></li>
+                    <li>Uistite sa, že v ňom nie sú <span className="text-blue-900 underline">medzery</span></li>
+                    <li>Choďte na Vercel -> Deployments -> <span className="text-blue-900 underline">REDEPLOY</span></li>
+                  </ol>
+                </div>
+                <button onClick={() => window.location.reload()} className="flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all">
+                  <RefreshCw className="w-4 h-4" /> Obnoviť stránku
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!result && !loading && !error && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12">
             {CATEGORIES.map((cat, i) => (
               <button key={i} onClick={() => handleSearch(undefined, cat.label)} className={`${cat.color} bg-opacity-40 p-6 rounded-3xl border-2 border-transparent hover:border-white hover:shadow-lg transition-all text-center group`}>
@@ -147,42 +179,13 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {error && (
-          <div className="mb-10 p-8 bg-white border-4 border-red-100 rounded-[2.5rem] shadow-xl animate-in zoom-in-95 duration-300">
-            <div className="flex flex-col items-center text-center">
-              <div className="bg-red-500 p-4 rounded-full mb-4">
-                <AlertTriangle className="text-white w-8 h-8" />
-              </div>
-              <h3 className="text-xl font-black text-red-600 uppercase mb-2">Chyba v nastavení kľúča</h3>
-              <p className="text-slate-600 font-bold text-sm mb-6 leading-relaxed">
-                Google API hlási, že váš kľúč je neplatný. Toto sa stáva, ak je v kľúči chyba alebo medzera.
-              </p>
-              
-              <div className="bg-slate-50 p-6 rounded-2xl w-full mb-6 text-left border border-slate-100">
-                <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Technický detail:</p>
-                <code className="text-[10px] text-red-500 break-all font-mono">{error}</code>
-              </div>
-
-              <div className="flex flex-col gap-3 w-full">
-                <a href="https://aistudio.google.com/app/apikey" target="_blank" className="flex items-center justify-center gap-2 bg-green-600 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-green-700 transition-all">
-                  <ExternalLink className="w-4 h-4" /> Získať nový kľúč
-                </a>
-                <button onClick={() => window.location.reload()} className="flex items-center justify-center gap-2 bg-slate-100 text-slate-600 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all">
-                  <RefreshCw className="w-4 h-4" /> Skúsiť znova (Refresh)
-                </button>
-              </div>
-              <p className="mt-4 text-[10px] text-slate-400 font-bold uppercase">Po zmene kľúča vo Verceli musíte urobiť "REDEPLOY"!</p>
-            </div>
-          </div>
-        )}
-
         {loading && (
           <div className="py-24 flex flex-col items-center justify-center">
             <div className="relative">
               <div className="w-24 h-24 border-8 border-green-50 border-t-green-600 rounded-full animate-spin"></div>
               <ShoppingBasket className="w-10 h-10 text-green-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <p className="mt-8 text-2xl font-black text-slate-800 uppercase tracking-tighter animate-pulse">Prehľadávam letáky...</p>
+            <p className="mt-8 text-2xl font-black text-slate-800 uppercase tracking-tighter animate-pulse">Sliedim v letákoch...</p>
           </div>
         )}
 
@@ -191,7 +194,7 @@ const App: React.FC = () => {
             <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
               <div className="p-8 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-                  <TrendingDown className="text-green-600" /> Najlepšie ceny pre: {query}
+                  <TrendingDown className="text-green-600" /> Výsledky pre: {query}
                 </h3>
               </div>
               <div className="overflow-x-auto">
@@ -205,14 +208,20 @@ const App: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
-                    {result.offers.map((offer, i) => (
+                    {result.offers.length > 0 ? result.offers.map((offer, i) => (
                       <tr key={i} className="hover:bg-slate-50/30 transition-colors">
                         <td className="px-8 py-6"><StoreBadge name={offer.store} /></td>
                         <td className="px-8 py-6 font-bold text-slate-800">{offer.product}</td>
                         <td className="px-8 py-6 font-black text-green-700 text-2xl tracking-tighter">{offer.price}</td>
                         <td className="px-8 py-6 text-xs text-slate-400 font-bold uppercase">{offer.validUntil}</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan={4} className="px-8 py-10 text-center text-slate-400 font-bold uppercase text-xs">
+                          Tabuľkové dáta neboli nájdené. Pozrite si AI zhrnutie nižšie.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -223,7 +232,7 @@ const App: React.FC = () => {
                 <div className="bg-white/20 p-2 rounded-xl"><Info className="w-5 h-5" /></div>
                 <h4 className="font-black uppercase tracking-widest text-sm">Zhrnutie od AI</h4>
               </div>
-              <p className="text-blue-50 font-medium leading-relaxed italic">{result.text}</p>
+              <p className="text-blue-50 font-medium leading-relaxed italic whitespace-pre-line">{result.text}</p>
             </div>
           </div>
         )}
@@ -234,10 +243,8 @@ const App: React.FC = () => {
           <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
             &copy; 2025 CENOVÝ SLIEDIČ SK
           </div>
-          <div className="flex items-center gap-6">
-            <span className="flex items-center gap-2 text-green-500 font-black text-[10px] uppercase tracking-widest">
-              <Zap className="w-4 h-4 fill-current" /> Powered by Gemini Flash 3.0
-            </span>
+          <div className="flex items-center gap-2 text-green-500 font-black text-[10px] uppercase tracking-widest">
+            <Zap className="w-4 h-4 fill-current" /> Google AI Smart Engine
           </div>
         </div>
       </footer>
