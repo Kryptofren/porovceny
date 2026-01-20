@@ -36,10 +36,11 @@ const parseMarkdownTable = (text: string): PriceOffer[] => {
 };
 
 export const searchPrices = async (query: string): Promise<SearchResult> => {
+  // POZOR: Na Verceli sa uistite, že premenná sa volá presne API_KEY
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
-    throw new Error("V systéme chýba API_KEY. Skontrolujte nastavenia Vercelu.");
+    throw new Error("Chýba API_KEY. Pridajte ho do Environment Variables na Verceli.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -47,26 +48,22 @@ export const searchPrices = async (query: string): Promise<SearchResult> => {
   
   const systemInstruction = `
     Si nákupný špecialista na slovenské potraviny. 
-    Tvojou úlohou je nájsť AKTUÁLNE AKCIE pre dopyt v obchodoch: Tesco, Lidl, Kaufland, Billa, COOP Jednota.
-    
-    PRAVIDLÁ:
-    1. Vždy vráť Markdown tabuľku: | Obchod | Produkt | Cena | Platnosť |
-    2. Pod tabuľku pridaj jednu vetu s odporúčaním.
-    3. Ak nevieš nájsť presnú cenu cez Google Search, použi svoje interné vedomosti o bežných akciách na Slovensku.
+    Vráť Markdown tabuľku: | Obchod | Produkt | Cena | Platnosť |
+    Pod tabuľku pridaj krátke odporúčanie.
   `;
 
-  // Pokus č. 1: S Google Search groundingom
   try {
+    // Pokus 1: S vyhľadávaním
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: `Nájdi aktuálne akciové ceny pre: ${query} na Slovensku.`,
+      contents: `Aktuálne ceny pre: ${query} na Slovensku v obchodoch Tesco, Lidl, Kaufland, Billa.`,
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }]
       },
     });
 
-    const text = response.text || "Neboli nájdené žiadne dáta.";
+    const text = response.text || "";
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const sources: GroundingSource[] = groundingChunks
       .filter((chunk: any) => chunk.web)
@@ -78,29 +75,25 @@ export const searchPrices = async (query: string): Promise<SearchResult> => {
     return { text, sources, offers: parseMarkdownTable(text) };
     
   } catch (error: any) {
-    console.warn("Google Search zlyhal (pravdepodobne regionálne obmedzenie), skúšam fallback bez search toolu...", error);
+    console.error("Gemini Search Error:", error);
     
-    // Fallback: Ak zlyhá search (400), skúsime to isté bez nástrojov
-    if (error.message?.includes("400") || error.message?.includes("403")) {
-      try {
-        const fallbackResponse = await ai.models.generateContent({
-          model: modelName,
-          contents: `Nájdi aktuálne odhadované akciové ceny pre: ${query} na Slovensku podľa tvojich vedomostí o letákoch.`,
-          config: { systemInstruction },
-        });
+    // Fallback: Ak zlyhá vyhľadávanie (napr. regionálny blok 400), skúsime čisté AI
+    try {
+      const fallbackResponse = await ai.models.generateContent({
+        model: modelName,
+        contents: `Aké sú bežné akciové ceny pre ${query} na Slovensku? (Odpovedaj podľa svojich vedomostí, ak nemáš prístup k webu).`,
+        config: { systemInstruction },
+      });
 
-        const text = fallbackResponse.text || "";
-        return { 
-          text: text + "\n\n(Poznámka: Tieto dáta sú generované bez priameho prístupu k webu kvôli technickému obmedzeniu API.)", 
-          sources: [], 
-          offers: parseMarkdownTable(text) 
-        };
-      } catch (innerError) {
-        throw new Error("Kritická chyba AI modelu. Skontrolujte API kľúč.");
-      }
+      const text = fallbackResponse.text || "";
+      return { 
+        text: text + "\n\n(Dáta z archívu AI - webové vyhľadávanie je momentálne nedostupné).", 
+        sources: [], 
+        offers: parseMarkdownTable(text) 
+      };
+    } catch (innerError: any) {
+      // Tu vypíšeme presnú chybu z API, aby používateľ vedel čo opraviť
+      throw new Error(`[API Error] ${innerError.message || 'Neznáma chyba'}`);
     }
-    
-    if (error.message?.includes("429")) throw new Error("Dosiahli ste limit bezplatných dopytov. Skúste o minútu.");
-    throw new Error("Chyba spojenia s AI. Skontrolujte nastavenia Vercel.");
   }
 };
