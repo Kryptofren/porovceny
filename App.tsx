@@ -163,14 +163,14 @@ const App: React.FC = () => {
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-8">
         <section className="mb-10 text-center">
           <h2 className="text-4xl font-black text-slate-900 mb-2 tracking-tighter uppercase">Nákupný Návrh</h2>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-8">Analyzujeme akcie cez Google AI</p>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mb-8">AI ANALÝZA LETÁKOV</p>
           
           <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto mb-10">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Čo chcete kúpiť? (napr. maslo, olej)"
+              placeholder="Čo chcete kúpiť? (napr. maslo, mlieko)"
               className="w-full pl-12 pr-32 py-5 bg-white border-2 border-slate-100 rounded-3xl shadow-xl focus:border-green-500 outline-none text-lg transition-all"
             />
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6" />
@@ -204,10 +204,13 @@ const App: React.FC = () => {
 
         {error && (
           <div className="mb-10 p-6 bg-red-50 border-2 border-red-100 rounded-3xl flex flex-col items-center text-center gap-3">
-            <AlertCircle className="w-8 h-8 text-red-500 animate-pulse" />
-            <div>
-              <p className="text-red-800 font-black uppercase text-sm mb-1">{error}</p>
-              <p className="text-red-600 text-[10px] font-bold">Skúste zadať iný názov alebo skontrolujte pripojenie.</p>
+            <AlertCircle className="w-8 h-8 text-red-500" />
+            <div className="max-w-md">
+              <p className="text-red-800 font-black uppercase text-xs mb-1">Chyba Diagnostiky:</p>
+              <code className="text-[10px] bg-red-100 px-2 py-1 rounded block mb-3 text-red-700 break-all">{error}</code>
+              <p className="text-slate-500 text-[10px] font-bold leading-relaxed uppercase">
+                Ak vidíte "API Key Invalid", skontrolujte Environment Variable <span className="text-red-800">API_KEY</span> na Verceli a dajte "Redeploy".
+              </p>
             </div>
           </div>
         )}
@@ -218,7 +221,7 @@ const App: React.FC = () => {
               <div className="w-20 h-20 border-4 border-green-100 border-t-green-600 rounded-full animate-spin"></div>
               <ShoppingBasket className="w-8 h-8 text-green-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <p className="text-slate-800 font-black text-xl uppercase tracking-tighter">Sliedim v letákoch...</p>
+            <p className="text-slate-800 font-black text-xl uppercase tracking-tighter animate-pulse">Prehľadávam slovenské letáky...</p>
           </div>
         )}
 
@@ -228,7 +231,7 @@ const App: React.FC = () => {
               <div className="bg-white border border-slate-200 rounded-[2rem] shadow-2xl overflow-hidden">
                 <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4">
                   <h3 className="font-black text-slate-800 flex items-center gap-3 text-lg uppercase tracking-tight">
-                    <TrendingDown className="w-6 h-6 text-green-600" /> Výsledky: <span className="text-green-600">{query}</span>
+                    <TrendingDown className="w-6 h-6 text-green-600" /> Aktuálne akcie: <span className="text-green-600">{query}</span>
                   </h3>
                 </div>
                 <div className="overflow-x-auto">
@@ -256,17 +259,17 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="p-10 bg-white rounded-[2rem] border border-slate-200 text-center">
-                <p className="text-slate-400 font-black uppercase">Žiadne konkrétne akcie v tabuľke, prečítajte si AI odporúčanie nižšie.</p>
+                <p className="text-slate-400 font-black uppercase text-xs">Tabuľka je prázdna, pozrite si textové vyhodnotenie nižšie.</p>
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-blue-50/50 p-8 rounded-[2rem] border border-blue-100">
-                <h4 className="text-[10px] font-black text-blue-400 uppercase mb-4 flex items-center gap-2"><Info className="w-4 h-4" /> AI Odporúčanie</h4>
+                <h4 className="text-[10px] font-black text-blue-400 uppercase mb-4 flex items-center gap-2"><Info className="w-4 h-4" /> AI Vyhodnotenie</h4>
                 <p className="text-sm text-slate-700 leading-relaxed font-bold italic whitespace-pre-line">{result.text}</p>
               </div>
               <div className="bg-white p-8 border border-slate-200 rounded-[2rem]">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><ExternalLink className="w-4 h-4 text-green-500" /> Zdroje dát</h4>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><ExternalLink className="w-4 h-4 text-green-500" /> Overené Zdroje</h4>
                 <div className="space-y-3">
                   {result.sources.length > 0 ? result.sources.map((s, i) => (
                     <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between text-[11px] font-black text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-green-500 hover:bg-white transition-all group">
@@ -274,7 +277,7 @@ const App: React.FC = () => {
                       <ExternalLink className="w-4 h-4 shrink-0 text-slate-300 group-hover:text-green-600" />
                     </a>
                   )) : (
-                    <p className="text-[10px] text-slate-400 font-bold uppercase py-4">Dáta čerpané z interných záznamov modelu.</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase py-4">Informácie čerpané z trénovacích dát AI modelu.</p>
                   )}
                 </div>
               </div>
@@ -286,7 +289,7 @@ const App: React.FC = () => {
       <footer className="mt-auto py-10 bg-white border-t border-slate-100">
         <div className="max-w-5xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
           <span>&copy; 2025 SLIEDIČ SK</span>
-          <span className="flex items-center gap-2 text-green-500"><Zap className="w-4 h-4 fill-current" /> GEMINI AI SMART ENGINE</span>
+          <span className="flex items-center gap-2 text-green-500"><Zap className="w-4 h-4 fill-current" /> POWERED BY GEMINI 3.0</span>
         </div>
       </footer>
     </div>
