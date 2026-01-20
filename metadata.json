@@ -1,0 +1,6 @@
+
+{
+  "name": "Slovenský Cenový Sliedič (Free)",
+  "description": "Bezplatná aplikácia na vyhľadávanie akciových cien v slovenských obchodoch využívajúca model Gemini Flash.",
+  "requestFramePermissions": []
+}
