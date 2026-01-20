@@ -5,12 +5,11 @@ import { SearchResult, GroundingSource, PriceOffer } from "../types";
 const parseMarkdownTable = (text: string): PriceOffer[] => {
   const offers: PriceOffer[] = [];
   const lines = text.split('\n');
-  
   let tableStarted = false;
   
   for (const line of lines) {
     const trimmed = line.trim();
-    if (trimmed.startsWith('|') && trimmed.endsWith('|')) {
+    if (trimmed.startsWith('|') && trimmed.includes('|')) {
       if (trimmed.toLowerCase().includes('obchod') || trimmed.includes('---')) {
         tableStarted = true;
         continue;
@@ -33,37 +32,40 @@ const parseMarkdownTable = (text: string): PriceOffer[] => {
       }
     }
   }
-  
   return offers;
 };
 
 export const searchPrices = async (query: string): Promise<SearchResult> => {
-  // Inicializácia klienta vždy nanovo pre zabezpečenie aktuálneho kľúča v rámci free tier limitov
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  const apiKey = process.env.API_KEY;
+  
+  if (!apiKey) {
+    throw new Error("V systéme chýba API_KEY. Skontrolujte nastavenia Vercelu.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   
   const systemInstruction = `
-    Si bezplatný nákupný asistent. Tvojou úlohou je nájsť aktuálne najlepšie ceny pre: Tesco, Lidl, Kaufland, Billa a Jednota.
+    Si nákupný špecialista na slovenské potraviny. 
+    Tvojou úlohou je nájsť AKTUÁLNE AKCIE pre dopyt v obchodoch: Tesco, Lidl, Kaufland, Billa, COOP Jednota.
     
-    FORMÁT:
-    1. Krátky sumár.
-    2. Markdown tabuľka: | Obchod | Produkt | Cena | Platnosť akcie |
-    
-    Dôležité: Používaj len Google Search grounding na získanie aktuálnych dát z webu.
+    PRAVIDLÁ:
+    1. Vždy vráť Markdown tabuľku: | Obchod | Produkt | Cena | Platnosť |
+    2. Pod tabuľku pridaj jednu vetu s odporúčaním, kde sa to najviac oplatí.
+    3. Ak nevieš nájsť presnú cenu, odhadni ju podľa posledných známych letákov.
   `;
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", // Najefektívnejší model pre Free Tier
-      contents: `Nájdi ceny pre: ${query} v SR obchodoch.`,
+      model: "gemini-3-flash-preview", 
+      contents: `Nájdi aktuálne akciové ceny pre: ${query} na Slovensku.`,
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }],
-        // Deaktivujeme thinking budget pre úsporu tokenov a rýchlosť vo free tieri
         thinkingConfig: { thinkingBudget: 0 }
       },
     });
 
-    const text = response.text || "Dáta nedostupné.";
+    const text = response.text || "Neboli nájdené žiadne dáta.";
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     const sources: GroundingSource[] = groundingChunks
       .filter((chunk: any) => chunk.web)
@@ -79,8 +81,14 @@ export const searchPrices = async (query: string): Promise<SearchResult> => {
       sources,
       offers,
     };
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    throw new Error("Free limit vyčerpaný alebo chyba spojenia. Skúste o chvíľu.");
+  } catch (error: any) {
+    console.error("Gemini API Error Detail:", error);
+    
+    // Špecifickejšie chybové hlášky
+    if (error.message?.includes("429")) throw new Error("Dosiahli ste limit bezplatných dopytov (Free Tier). Skúste o minútu.");
+    if (error.message?.includes("403")) throw new Error("API kľúč nemá povolenie na Google Search (možné regionálne obmedzenie EÚ).");
+    if (error.message?.includes("400")) throw new Error("Chybná požiadavka. Skúste iný názov potraviny.");
+    
+    throw new Error("Chyba spojenia s AI. Skontrolujte API_KEY v nastaveniach Vercel.");
   }
 };
