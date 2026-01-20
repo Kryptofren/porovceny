@@ -12,7 +12,6 @@ import {
   Lock, 
   Unlock, 
   History, 
-  Trash2,
   Coffee,
   Egg,
   Beef,
@@ -45,15 +44,6 @@ const CATEGORIES = [
       { label: 'Zemiaky', icon: <Carrot className="w-4 h-4" />, color: 'bg-orange-50 text-orange-800' },
       { label: 'Losos', icon: <Fish className="w-4 h-4" />, color: 'bg-pink-100 text-pink-700' },
     ]
-  },
-  { 
-    title: "Iné",
-    items: [
-      { label: 'Káva', icon: <Coffee className="w-4 h-4" />, color: 'bg-stone-100 text-stone-700' },
-      { label: 'Pivo', icon: <Zap className="w-4 h-4" />, color: 'bg-yellow-50 text-yellow-600' },
-      { label: 'Pizza', icon: <Pizza className="w-4 h-4" />, color: 'bg-red-50 text-red-600' },
-      { label: 'Olej', icon: <UtensilsCrossed className="w-4 h-4" />, color: 'bg-yellow-100 text-yellow-800' },
-    ]
   }
 ];
 
@@ -65,7 +55,6 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<SearchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [filterStore, setFilterStore] = useState<string>('All');
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
 
   useEffect(() => {
@@ -136,7 +125,7 @@ const App: React.FC = () => {
               <Lock className="text-white w-8 h-8" />
             </div>
             <h1 className="text-2xl font-black text-slate-800 text-center uppercase tracking-tight">Sliedič Vstup</h1>
-            <p className="text-slate-500 text-xs mt-2 text-center font-bold">Zadajte heslo z nastavení Vercelu (APP_PASSWORD).</p>
+            <p className="text-slate-500 text-xs mt-2 text-center font-bold">Zadajte heslo z Vercelu (APP_PASSWORD).</p>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">
             <input
@@ -190,7 +179,6 @@ const App: React.FC = () => {
             </button>
           </form>
 
-          {/* Inteligentné Návrhy Kategórií */}
           {!result && !loading && (
             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
               {CATEGORIES.map((cat, idx) => (
@@ -214,30 +202,12 @@ const App: React.FC = () => {
           )}
         </section>
 
-        {searchHistory.length > 0 && (
-          <section className="mb-8 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <History className="w-3 h-3" /> História nákupov
-              </h3>
-              <button onClick={() => { setSearchHistory([]); localStorage.removeItem('sliedic_history'); }} className="text-[10px] text-red-400 font-black uppercase hover:underline">Zmazať</button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {searchHistory.map((term, i) => (
-                <button key={i} onClick={() => handleSearch(undefined, term)} className="px-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-xs font-black text-slate-500 hover:bg-green-50 hover:text-green-700 transition-all uppercase tracking-tighter">
-                  {term}
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
         {error && (
-          <div className="mb-10 p-6 bg-red-50 border-2 border-red-100 rounded-3xl flex flex-col items-center text-center gap-3 animate-bounce">
-            <AlertCircle className="w-8 h-8 text-red-500" />
+          <div className="mb-10 p-6 bg-red-50 border-2 border-red-100 rounded-3xl flex flex-col items-center text-center gap-3">
+            <AlertCircle className="w-8 h-8 text-red-500 animate-pulse" />
             <div>
               <p className="text-red-800 font-black uppercase text-sm mb-1">{error}</p>
-              <p className="text-red-600 text-[10px] font-bold">Skontrolujte API_KEY v nastaveniach Vercelu a skúste znova.</p>
+              <p className="text-red-600 text-[10px] font-bold">Skúste zadať iný názov alebo skontrolujte pripojenie.</p>
             </div>
           </div>
         )}
@@ -249,56 +219,63 @@ const App: React.FC = () => {
               <ShoppingBasket className="w-8 h-8 text-green-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
             <p className="text-slate-800 font-black text-xl uppercase tracking-tighter">Sliedim v letákoch...</p>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Pripravte si nákupný košík</p>
           </div>
         )}
 
         {result && !loading && (
           <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
-            <div className="bg-white border border-slate-200 rounded-[2rem] shadow-2xl overflow-hidden">
-              <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4">
-                <h3 className="font-black text-slate-800 flex items-center gap-3 text-lg uppercase tracking-tight">
-                  <TrendingDown className="w-6 h-6 text-green-600" /> Výsledky: <span className="text-green-600">{query}</span>
-                </h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 text-[10px] uppercase font-black text-slate-400 border-b border-slate-100">
-                    <tr>
-                      <th className="px-8 py-5">Obchod</th>
-                      <th className="px-8 py-5">Produkt</th>
-                      <th className="px-8 py-5 text-green-600">Akciová Cena</th>
-                      <th className="px-8 py-5">Platnosť do</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {result.offers.map((offer, i) => (
-                      <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-8 py-6"><StoreBadge name={offer.store} /></td>
-                        <td className="px-8 py-6 font-black text-slate-800 text-sm group-hover:text-green-700">{offer.product}</td>
-                        <td className="px-8 py-6 font-black text-green-700 text-2xl tracking-tighter">{offer.price}</td>
-                        <td className="px-8 py-6 text-[10px] text-slate-400 font-black uppercase">{offer.validUntil}</td>
+            {result.offers.length > 0 ? (
+              <div className="bg-white border border-slate-200 rounded-[2rem] shadow-2xl overflow-hidden">
+                <div className="p-6 bg-slate-50/50 border-b border-slate-100 flex flex-wrap justify-between items-center gap-4">
+                  <h3 className="font-black text-slate-800 flex items-center gap-3 text-lg uppercase tracking-tight">
+                    <TrendingDown className="w-6 h-6 text-green-600" /> Výsledky: <span className="text-green-600">{query}</span>
+                  </h3>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-slate-50 text-[10px] uppercase font-black text-slate-400 border-b border-slate-100">
+                      <tr>
+                        <th className="px-8 py-5">Obchod</th>
+                        <th className="px-8 py-5">Produkt</th>
+                        <th className="px-8 py-5 text-green-600">Cena</th>
+                        <th className="px-8 py-5">Platnosť</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {result.offers.map((offer, i) => (
+                        <tr key={i} className="hover:bg-slate-50/50 transition-colors group">
+                          <td className="px-8 py-6"><StoreBadge name={offer.store} /></td>
+                          <td className="px-8 py-6 font-black text-slate-800 text-sm group-hover:text-green-700">{offer.product}</td>
+                          <td className="px-8 py-6 font-black text-green-700 text-2xl tracking-tighter">{offer.price}</td>
+                          <td className="px-8 py-6 text-[10px] text-slate-400 font-black uppercase">{offer.validUntil}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="p-10 bg-white rounded-[2rem] border border-slate-200 text-center">
+                <p className="text-slate-400 font-black uppercase">Žiadne konkrétne akcie v tabuľke, prečítajte si AI odporúčanie nižšie.</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-blue-50/50 p-8 rounded-[2rem] border border-blue-100">
                 <h4 className="text-[10px] font-black text-blue-400 uppercase mb-4 flex items-center gap-2"><Info className="w-4 h-4" /> AI Odporúčanie</h4>
-                <p className="text-sm text-slate-700 leading-relaxed font-bold italic">"{result.text.split('|').pop()?.trim()}"</p>
+                <p className="text-sm text-slate-700 leading-relaxed font-bold italic whitespace-pre-line">{result.text}</p>
               </div>
               <div className="bg-white p-8 border border-slate-200 rounded-[2rem]">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><ExternalLink className="w-4 h-4 text-green-500" /> Zdroje letákov</h4>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase mb-4 flex items-center gap-2"><ExternalLink className="w-4 h-4 text-green-500" /> Zdroje dát</h4>
                 <div className="space-y-3">
-                  {result.sources.map((s, i) => (
+                  {result.sources.length > 0 ? result.sources.map((s, i) => (
                     <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between text-[11px] font-black text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100 hover:border-green-500 hover:bg-white transition-all group">
                       <span className="truncate pr-4 uppercase">{s.title}</span>
                       <ExternalLink className="w-4 h-4 shrink-0 text-slate-300 group-hover:text-green-600" />
                     </a>
-                  ))}
+                  )) : (
+                    <p className="text-[10px] text-slate-400 font-bold uppercase py-4">Dáta čerpané z interných záznamov modelu.</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -308,13 +285,8 @@ const App: React.FC = () => {
 
       <footer className="mt-auto py-10 bg-white border-t border-slate-100">
         <div className="max-w-5xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">
-          <div className="flex flex-col items-center md:items-start gap-1">
-            <span className="text-slate-500 tracking-normal">&copy; 2025 SLIEDIČ SK</span>
-            <span className="text-[8px] opacity-50 tracking-normal italic">Ceny sú len informatívne, overte si ich v obchode.</span>
-          </div>
-          <div className="flex items-center gap-8">
-            <span className="flex items-center gap-2 text-green-500"><Zap className="w-4 h-4 fill-current" /> POWERED BY GEMINI 3.0</span>
-          </div>
+          <span>&copy; 2025 SLIEDIČ SK</span>
+          <span className="flex items-center gap-2 text-green-500"><Zap className="w-4 h-4 fill-current" /> GEMINI AI SMART ENGINE</span>
         </div>
       </footer>
     </div>
