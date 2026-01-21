@@ -3,9 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   ShoppingBasket, 
-  ExternalLink, 
   Loader2, 
-  AlertCircle, 
   TrendingDown, 
   Info, 
   Zap, 
@@ -14,7 +12,10 @@ import {
   AlertTriangle,
   RefreshCw,
   Terminal,
-  CheckCircle2
+  Settings,
+  Rocket,
+  CheckCircle2,
+  ExternalLink
 } from 'lucide-react';
 import { searchPrices } from './services/geminiService';
 import { SearchResult } from './types';
@@ -77,7 +78,7 @@ const App: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4 font-sans">
         <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-10 border border-slate-200">
           <div className="flex flex-col items-center mb-8">
             <div className="bg-green-600 p-5 rounded-3xl mb-4 shadow-xl shadow-green-200 rotate-3">
@@ -90,13 +91,13 @@ const App: React.FC = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="HESLO (APP_PASSWORD)"
+              placeholder="ZADAJTE HESLO"
               className="w-full px-6 py-5 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none text-center text-xl font-bold focus:border-green-500 transition-all"
               autoFocus
             />
-            {authError && <p className="text-red-500 text-center text-xs font-bold uppercase mb-2">Chybné heslo!</p>}
+            {authError && <p className="text-red-500 text-center text-xs font-black uppercase">Chybné heslo!</p>}
             <button type="submit" className="w-full bg-slate-900 hover:bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg">
-              Odomknúť aplikáciu
+              Odomknúť
             </button>
           </form>
         </div>
@@ -120,8 +121,8 @@ const App: React.FC = () => {
 
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 md:p-8">
         <div className="text-center mb-10">
-          <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tight">Akcie v SR</h2>
-          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">Inteligentný nákupný asistent</p>
+          <h2 className="text-4xl font-black text-slate-900 mb-2 uppercase tracking-tight">Akcie na Slovensku</h2>
+          <p className="text-slate-400 font-bold text-xs uppercase tracking-[0.2em]">Inteligentný Sliedič Letákov</p>
         </div>
 
         <form onSubmit={handleSearch} className="relative mb-12">
@@ -129,51 +130,57 @@ const App: React.FC = () => {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Zadajte potravinu..."
+            placeholder="Čo dnes hľadáme v akcii?"
             className="w-full pl-14 pr-36 py-6 bg-white border-2 border-slate-100 rounded-[2rem] shadow-xl focus:border-green-500 outline-none text-xl font-medium transition-all"
           />
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 w-6 h-6" />
           <button type="submit" disabled={loading} className="absolute right-3 top-1/2 -translate-y-1/2 bg-green-600 hover:bg-green-700 text-white px-8 py-3.5 rounded-2xl font-black uppercase text-sm tracking-wider disabled:opacity-50 transition-all active:scale-95">
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'VYHĽADAŤ'}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sliediť'}
           </button>
         </form>
 
         {error && (
-          <div className="mb-10 p-8 bg-red-50 border-4 border-red-100 rounded-[2.5rem] shadow-xl animate-in zoom-in-95 duration-300">
-            <div className="flex flex-col items-center text-center">
-              <div className="bg-red-500 p-4 rounded-full mb-4">
-                <AlertTriangle className="text-white w-8 h-8" />
+          <div className="mb-10 animate-in zoom-in-95 duration-300">
+            <div className="bg-white border-4 border-red-500 rounded-[3rem] overflow-hidden shadow-2xl">
+              <div className="bg-red-500 p-6 flex items-center justify-center gap-4 text-white">
+                <AlertTriangle className="w-10 h-10 animate-pulse" />
+                <h3 className="text-2xl font-black uppercase tracking-tighter">Posledný krok chýba!</h3>
               </div>
-              <h3 className="text-xl font-black text-red-600 uppercase mb-4">Chyba konfigurácie</h3>
               
-              <div className="bg-white p-6 rounded-2xl w-full mb-6 text-left border border-red-200">
-                <div className="flex items-center gap-2 mb-3 text-red-800 font-bold uppercase text-[10px]">
-                  <Terminal className="w-4 h-4" /> Diagnostické hlásenie
-                </div>
-                <code className="text-xs text-red-600 break-all font-mono leading-relaxed">{error}</code>
-              </div>
-
-              <div className="bg-blue-50 p-6 rounded-2xl text-left border border-blue-100 w-full mb-6">
-                <h4 className="text-blue-800 font-black text-xs uppercase mb-3 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" /> Správne nastavenie vo Verceli:
-                </h4>
-                <div className="space-y-4 text-[11px] font-bold text-blue-700 uppercase">
-                  <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-blue-200">
-                    <span>Variable Name:</span>
-                    <span className="text-blue-900 bg-blue-100 px-2 py-1 rounded">API_KEY</span>
+              <div className="p-8 space-y-6">
+                <div className="bg-slate-900 p-6 rounded-2xl">
+                  <div className="flex items-center gap-2 mb-2 text-slate-500 font-black text-[10px] uppercase">
+                    <Terminal className="w-4 h-4" /> Diagnostika
                   </div>
-                  <p className="leading-relaxed">
-                    Ak máte premennú pomenovanú <span className="underline">GOOGLE_AI_API_KEY</span>, premenujte ju na <span className="underline text-blue-900">API_KEY</span>.
-                  </p>
-                  <p className="bg-yellow-100 p-3 rounded-xl text-yellow-800 border border-yellow-200">
-                    ⚠️ PO ZMENE MUSÍTE UROBIŤ "REDEPLOY" V ZÁLOŽKE DEPLOYMENTS!
-                  </p>
+                  <code className="text-red-400 text-xs font-mono break-all leading-relaxed">{error}</code>
                 </div>
-              </div>
 
-              <button onClick={() => window.location.reload()} className="flex items-center justify-center gap-2 bg-slate-900 text-white py-4 px-8 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all">
-                <RefreshCw className="w-4 h-4" /> Skúsiť znova
-              </button>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 bg-green-50 p-4 rounded-2xl border border-green-200">
+                    <CheckCircle2 className="text-green-600 w-6 h-6 shrink-0" />
+                    <p className="text-xs font-bold text-green-800 uppercase">Krok 1: Kľúč ste nastavili správne (podľa vášho screenshotu).</p>
+                  </div>
+
+                  <div className="bg-blue-600 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
+                    <Rocket className="absolute -right-4 -bottom-4 w-24 h-24 text-white/10 rotate-12" />
+                    <h4 className="text-sm font-black uppercase mb-3 flex items-center gap-2">
+                      <ExternalLink className="w-4 h-4" /> Krok 2: Urobte REDEPLOY
+                    </h4>
+                    <p className="text-[11px] font-bold uppercase leading-relaxed opacity-90 mb-4">
+                      Bez tohto kroku aplikácia stále beží so starým kľúčom "PLACEHOLDER".
+                    </p>
+                    <div className="bg-white/20 p-4 rounded-xl text-[10px] font-black uppercase space-y-2">
+                      <p>1. Choďte do záložky <span className="underline">Deployments</span></p>
+                      <p>2. Kliknite na <span className="underline">tri bodky (...)</span> pri hornom zázname</p>
+                      <p>3. Vyberte <span className="bg-white text-blue-600 px-2 py-0.5 rounded ml-1">REDEPLOY</span></p>
+                    </div>
+                  </div>
+                </div>
+
+                <button onClick={() => window.location.reload()} className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-5 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all">
+                  <RefreshCw className="w-5 h-5" /> Skontrolovať po redeployi
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -194,7 +201,7 @@ const App: React.FC = () => {
               <div className="w-24 h-24 border-8 border-green-50 border-t-green-600 rounded-full animate-spin"></div>
               <ShoppingBasket className="w-10 h-10 text-green-600 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
             </div>
-            <p className="mt-8 text-2xl font-black text-slate-800 uppercase tracking-tighter animate-pulse">Sliedim v letákoch...</p>
+            <p className="mt-8 text-2xl font-black text-slate-800 uppercase tracking-tighter animate-pulse text-center">Prehľadávam slovenské weby...</p>
           </div>
         )}
 
@@ -203,7 +210,7 @@ const App: React.FC = () => {
             <div className="bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
               <div className="p-8 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-                  <TrendingDown className="text-green-600" /> Výsledky pre: {query}
+                  <TrendingDown className="text-green-600" /> Najlepšie nálezy pre: {query}
                 </h3>
               </div>
               <div className="overflow-x-auto">
@@ -227,7 +234,7 @@ const App: React.FC = () => {
                     )) : (
                       <tr>
                         <td colSpan={4} className="px-8 py-10 text-center text-slate-400 font-bold uppercase text-xs">
-                          Tabuľkové dáta neboli nájdené. Pozrite si AI zhrnutie nižšie.
+                          Tabuľkové dáta neboli vygenerované, pozrite si zhrnutie nižšie.
                         </td>
                       </tr>
                     )}
@@ -239,7 +246,7 @@ const App: React.FC = () => {
             <div className="bg-blue-600 p-8 rounded-[2rem] text-white shadow-xl shadow-blue-100">
               <div className="flex items-center gap-3 mb-4">
                 <div className="bg-white/20 p-2 rounded-xl"><Info className="w-5 h-5" /></div>
-                <h4 className="font-black uppercase tracking-widest text-sm">Zhrnutie od AI</h4>
+                <h4 className="font-black uppercase tracking-widest text-sm">Zhrnutie od AI Sliediča</h4>
               </div>
               <p className="text-blue-50 font-medium leading-relaxed italic whitespace-pre-line">{result.text}</p>
             </div>
@@ -253,7 +260,7 @@ const App: React.FC = () => {
             &copy; 2025 CENOVÝ SLIEDIČ SK
           </div>
           <div className="flex items-center gap-2 text-green-500 font-black text-[10px] uppercase tracking-widest">
-            <Zap className="w-4 h-4 fill-current" /> Google AI Smart Engine
+            <Zap className="w-4 h-4 fill-current" /> Inteligentné vyhľadávanie akcií
           </div>
         </div>
       </footer>
