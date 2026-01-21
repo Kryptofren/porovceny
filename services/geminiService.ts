@@ -36,29 +36,30 @@ const parseMarkdownTable = (text: string): PriceOffer[] => {
 };
 
 export const searchPrices = async (query: string): Promise<SearchResult> => {
-  // Aplikácia vyžaduje presne názov API_KEY
   const rawApiKey = process.env.API_KEY || "";
   const apiKey = rawApiKey.trim();
   
-  if (!apiKey) {
-    throw new Error("Chýba premenná s názvom 'API_KEY'. Vo Verceli sa nesmie volať GOOGLE_AI_API_KEY, ale presne API_KEY.");
+  // Získame začiatok kľúča pre diagnostiku
+  const keyStart = apiKey.substring(0, 4).toUpperCase();
+
+  if (keyStart === "PLAC" || keyStart === "NONE" || !apiKey) {
+    throw new Error(`STÁLE POUŽÍVATE STARÝ KĽÚČ (${apiKey.substring(0, 8)}...). Nastavenie vo Verceli ste síce zmenili, ale aplikáciu ste ešte nepresunuli do prevádzky. Choďte do záložky 'Deployments' a kliknite na 'Redeploy'!`);
   }
 
+  // Ak sme tu a kľúč začína na AIza, malo by to fungovať
   const ai = new GoogleGenAI({ apiKey });
-  // Používame najnovší gemini-3-flash-preview
   const modelName = "gemini-3-flash-preview";
   
   const systemInstruction = `
-    Si slovenský nákupný expert. 
-    Hľadaj aktuálne akciové ceny potravín na Slovensku (Tesco, Lidl, Kaufland, Billa, Kraj).
+    Si nákupný expert pre Slovensko. 
     Vždy odpovedaj Markdown tabuľkou: | Obchod | Produkt | Cena | Platnosť |
-    Pod tabuľku pridaj stručné odporúčanie, kde sa nákup najviac oplatí.
+    Zameraj sa na Tesco, Lidl, Kaufland, Billa.
   `;
 
   try {
     const response = await ai.models.generateContent({
       model: modelName,
-      contents: `Nájdi aktuálne akcie na ${query} v slovenských obchodoch.`,
+      contents: `Aktuálne ceny pre ${query} na Slovensku.`,
       config: {
         systemInstruction,
         tools: [{ googleSearch: {} }]
@@ -78,29 +79,12 @@ export const searchPrices = async (query: string): Promise<SearchResult> => {
     
   } catch (error: any) {
     console.error("Gemini Error:", error);
-    
     const errorMsg = error.message || "";
-    const keySnippet = apiKey ? `${apiKey.substring(0, 6)}...` : "NONE";
-
+    
     if (errorMsg.includes("API key not valid") || errorMsg.includes("400")) {
-      throw new Error(`Kľúč (${keySnippet}) bol Google serverom odmietnutý. Skontrolujte: 1. Názov musí byť API_KEY. 2. Kľúč musí byť aktívny v Google AI Studio. 3. Skúste REDEPLOY.`);
+      throw new Error(`Google stále hlási neplatný kľúč (${apiKey.substring(0, 8)}...). Ak ste už urobili Redeploy a kľúč na vašom screenshote je správny, skúste vygenerovať úplne nový kľúč v Google AI Studio.`);
     }
 
-    // Fallback ak zlyhá len vyhľadávanie
-    try {
-      const fallbackResponse = await ai.models.generateContent({
-        model: modelName,
-        contents: `Aké sú typické akciové ceny pre ${query} na Slovensku? Odpovedaj tabuľkou.`,
-        config: { systemInstruction },
-      });
-      const text = fallbackResponse.text || "";
-      return { 
-        text: text + "\n\n(Poznámka: Dáta z pamäte AI, vyhľadávanie na webe zlyhalo).", 
-        sources: [], 
-        offers: parseMarkdownTable(text) 
-      };
-    } catch (innerError: any) {
-      throw new Error(`Kritické zlyhanie: ${innerError.message}`);
-    }
+    throw error;
   }
 };
