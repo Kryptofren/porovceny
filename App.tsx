@@ -13,7 +13,8 @@ import {
   Unlock, 
   AlertTriangle,
   RefreshCw,
-  Terminal
+  Terminal,
+  CheckCircle2
 } from 'lucide-react';
 import { searchPrices } from './services/geminiService';
 import { SearchResult } from './types';
@@ -143,7 +144,7 @@ const App: React.FC = () => {
               <div className="bg-red-500 p-4 rounded-full mb-4">
                 <AlertTriangle className="text-white w-8 h-8" />
               </div>
-              <h3 className="text-xl font-black text-red-600 uppercase mb-4">Problém s kľúčom</h3>
+              <h3 className="text-xl font-black text-red-600 uppercase mb-4">Chyba konfigurácie</h3>
               
               <div className="bg-white p-6 rounded-2xl w-full mb-6 text-left border border-red-200">
                 <div className="flex items-center gap-2 mb-3 text-red-800 font-bold uppercase text-[10px]">
@@ -152,19 +153,27 @@ const App: React.FC = () => {
                 <code className="text-xs text-red-600 break-all font-mono leading-relaxed">{error}</code>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 w-full">
-                <div className="bg-blue-50 p-6 rounded-2xl text-left border border-blue-100">
-                  <h4 className="text-blue-800 font-black text-xs uppercase mb-2">Ako to opraviť?</h4>
-                  <ol className="text-xs text-blue-700 space-y-2 list-decimal ml-4 font-bold uppercase">
-                    <li>Vložte kľúč do Vercelu ako <span className="text-blue-900 underline">API_KEY</span></li>
-                    <li>Uistite sa, že v ňom nie sú <span className="text-blue-900 underline">medzery</span></li>
-                    <li>Choďte na Vercel -> Deployments -> <span className="text-blue-900 underline">REDEPLOY</span></li>
-                  </ol>
+              <div className="bg-blue-50 p-6 rounded-2xl text-left border border-blue-100 w-full mb-6">
+                <h4 className="text-blue-800 font-black text-xs uppercase mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" /> Správne nastavenie vo Verceli:
+                </h4>
+                <div className="space-y-4 text-[11px] font-bold text-blue-700 uppercase">
+                  <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-blue-200">
+                    <span>Variable Name:</span>
+                    <span className="text-blue-900 bg-blue-100 px-2 py-1 rounded">API_KEY</span>
+                  </div>
+                  <p className="leading-relaxed">
+                    Ak máte premennú pomenovanú <span className="underline">GOOGLE_AI_API_KEY</span>, premenujte ju na <span className="underline text-blue-900">API_KEY</span>.
+                  </p>
+                  <p className="bg-yellow-100 p-3 rounded-xl text-yellow-800 border border-yellow-200">
+                    ⚠️ PO ZMENE MUSÍTE UROBIŤ "REDEPLOY" V ZÁLOŽKE DEPLOYMENTS!
+                  </p>
                 </div>
-                <button onClick={() => window.location.reload()} className="flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all">
-                  <RefreshCw className="w-4 h-4" /> Obnoviť stránku
-                </button>
               </div>
+
+              <button onClick={() => window.location.reload()} className="flex items-center justify-center gap-2 bg-slate-900 text-white py-4 px-8 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all">
+                <RefreshCw className="w-4 h-4" /> Skúsiť znova
+              </button>
             </div>
           </div>
         )}
